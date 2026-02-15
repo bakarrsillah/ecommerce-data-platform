@@ -13,7 +13,7 @@ engine = get_engine()
 st.title("🧾 Sales Entry")
 
 customers = pd.read_sql(
-    "SELECT customer_id, CONCAT(first_name,' ',last_name) AS name FROM customers",
+    "SELECT customer_id, first_name || ' ' || last_name AS name FROM customers",
     engine
 )
 
@@ -30,27 +30,25 @@ if st.button("Submit Sale"):
 
     # Convert safely to Python native types
     customer_id = int(customers.loc[customers["name"] == customer, "customer_id"].values[0])
-
     product_row = products.loc[products["product_name"] == product]
     product_id = int(product_row["product_id"].values[0])
     price = float(product_row["price"].values[0])
     quantity = int(quantity)
-
     total_amount = float(quantity * price)
 
     try:
         with engine.begin() as conn:
 
-            # 1️⃣ Insert Order
+            # 1️⃣ Insert Order and get order_id (PostgreSQL RETURNING)
             result = conn.execute(
                 text("""
                     INSERT INTO orders (customer_id, order_date, status)
                     VALUES (:cid, NOW(), 'Completed')
+                    RETURNING order_id
                 """),
                 {"cid": customer_id}
             )
-
-            order_id = int(result.lastrowid)
+            order_id = result.fetchone()[0]  # ✅ get the generated order_id
 
             # 2️⃣ Insert Order Item
             conn.execute(
