@@ -1,15 +1,14 @@
 import os
 from sqlalchemy import create_engine
-from urllib.parse import quote_plus
 
 def get_engine():
-    user = os.getenv("DB_USER")
-    password = quote_plus(os.getenv("DB_PASSWORD"))
-    host = os.getenv("DB_HOST")
-    db = os.getenv("DB_NAME")
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
-    engine = create_engine(
-        f"mysql+mysqlconnector://{user}:{password}@{host}/{db}"
-    )
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL not set")
 
-    return engine
+    # Force SSL for Render
+    if "sslmode" not in DATABASE_URL:
+        DATABASE_URL += "?sslmode=require"
+
+    return create_engine(DATABASE_URL)
